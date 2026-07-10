@@ -18,4 +18,6 @@ public class ApplicationSettings
     public int? CurrentDeviceIndex { get; set; }
 
     public string ThemeVariant { get; set; } = "Light";
+
+    public string CdmDefinitionsPath { get; set; } = string.Empty;
 }

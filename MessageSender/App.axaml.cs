@@ -6,6 +6,7 @@ using Avalonia.Styling;
 using AvaloniaEdit.Document;
 using CommunityToolkit.Mvvm.DependencyInjection;
 using MessageSender.Models;
+using MessageSender.Services.CDM;
 using MessageSender.Services.Configuration;
 using MessageSender.Services.Interaction;
 using MessageSender.Services.Routing;
@@ -72,7 +73,12 @@ public partial class App : Application
         _mainViewModel.AppState.AppData.Devices = new ObservableCollection<Device>(_savedSettings.Devices);
         _mainViewModel.AppState.AppData.Messages = new ObservableCollection<StoredMessage>(_savedSettings.Messages);
         _mainViewModel.AppState.Settings.ThemeVariant = _savedSettings.ThemeVariant;
+        _mainViewModel.AppState.Settings.CdmDefinitionsPath = _savedSettings.CdmDefinitionsPath;
         RequestedThemeVariant = GetThemeVariant(_savedSettings.ThemeVariant);
+
+        // Load CDM definitions if a path was previously saved (silently fail at startup)
+        if (!string.IsNullOrWhiteSpace(_savedSettings.CdmDefinitionsPath))
+            _ = Ioc.Default.GetService<CdmDefinitionService>()!.Load(_savedSettings.CdmDefinitionsPath);
 
         ActualThemeVariantChanged += App_ActualThemeVariantChanged;
     }
@@ -109,6 +115,7 @@ public partial class App : Application
             // Service
             .AddSingleton<AppState>()
             .AddSingleton<MqttService>()
+            .AddSingleton<CdmDefinitionService>()
             .AddTransient<ActionDispatcher>()
             .AddRouting(vl =>
             {
@@ -144,6 +151,7 @@ public partial class App : Application
             Devices = _mainViewModel.AppState.AppData.Devices.ToList(),
             Messages = _mainViewModel.AppState.AppData.Messages.ToList(),
             ThemeVariant = _mainViewModel.AppState.Settings.ThemeVariant,
+            CdmDefinitionsPath = _mainViewModel.AppState.Settings.CdmDefinitionsPath,
         };
 
         AppSettingsService.SaveAppState(applicationSettings);

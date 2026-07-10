@@ -25,7 +25,7 @@
     </UserControl.Styles>
 
     <Grid ColumnDefinitions="*,1,*">
-        <Grid Grid.Column="0" RowDefinitions="Auto, 4*,1,2*">
+        <Grid Grid.Column="0" RowDefinitions="Auto, Auto, 4*,1,2*">
             <Border
                 Grid.Row="0"
                 Height="43"
@@ -83,7 +83,61 @@
                     </StackPanel>
                 </Grid>
             </Border>
-            <Border Grid.Row="1">
+            <Border
+                Grid.Row="1"
+                Height="43"
+                Padding="5"
+                Background="{actipro:ThemeResource Container2BackgroundBrush}"
+                BorderBrush="{actipro:ThemeResource Container3BorderBrush}"
+                BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="*, Auto">
+                    <ComboBox
+                        Grid.Column="0"
+                        MinWidth="220"
+                        Classes="theme-soft"
+                        ItemsSource="{Binding AppState.AppData.Messages}"
+                        PlaceholderText="Load saved message..."
+                        SelectedItem="{Binding SelectedStoredMessage}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type models:StoredMessage}">
+                                <Grid ColumnDefinitions="Auto, Auto">
+                                    <TextBlock
+                                        Grid.Column="0"
+                                        MinWidth="160"
+                                        FontWeight="DemiBold"
+                                        Text="{Binding Name}" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Foreground="{actipro:ThemeResource DefaultForegroundBrushDisabled}"
+                                        Text="{Binding DeviceType}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <StackPanel
+                        Grid.Column="1"
+                        Orientation="Horizontal"
+                        Spacing="2">
+                        <Button
+                            Classes="theme-subtle"
+                            Command="{Binding SelectCdmDefinitionsPathCommand}"
+                            ToolTip.Tip="{Binding AppState.Settings.CdmDefinitionsPath, StringFormat='CDM Definitions: {0}'}">
+                            <PathIcon Data="{StaticResource FolderRegular}" />
+                        </Button>
+                        <!--  Warning: CDM definitions not loaded  -->
+                        <Path
+                            Width="20"
+                            Height="20"
+                            Margin="-4,-2,0,0"
+                            VerticalAlignment="Center"
+                            Data="{StaticResource WarningRegular}"
+                            Fill="#DC3545"
+                            IsVisible="{Binding ShouldShowCdmWarning}"
+                            ToolTip.Tip="CDM definitions not loaded. Click the folder button to configure a path to a local copy of the cdm-definitions repository (https://github.com/resideo/cdm-definitions)." />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Border Grid.Row="2">
                 <Grid>
                     <Border
                         Height="32"
@@ -96,6 +150,26 @@
                         CornerRadius="5"
                         ZIndex="10">
                         <StackPanel Orientation="Horizontal">
+                            <!--  Show when in CDM view mode: click to switch to raw edit  -->
+                            <Button
+                                Width="32"
+                                Padding="0"
+                                Classes="theme-subtle accent"
+                                Command="{Binding ToggleCdmEditModeCommand}"
+                                IsVisible="{Binding IsCdmViewMode}"
+                                ToolTip.Tip="Edit raw JSON">
+                                <PathIcon Data="{StaticResource EditRegular}" />
+                            </Button>
+                            <!--  Show when in CDM edit mode (raw): click to switch to CDM view  -->
+                            <Button
+                                Width="32"
+                                Padding="0"
+                                Classes="theme-subtle"
+                                Command="{Binding ToggleCdmEditModeCommand}"
+                                IsVisible="{Binding IsCdmEditActive}"
+                                ToolTip.Tip="View CDM format">
+                                <PathIcon Data="{StaticResource EyeRegular}" />
+                            </Button>
                             <Button
                                 Width="32"
                                 Padding="0"
@@ -110,12 +184,32 @@
                                     { }
                                 </TextBlock>
                             </Button>
+                            <!--  Warning: CDM definitions not loaded  -->
+                            <Path
+                                Width="20"
+                                Height="20"
+                                Margin="-4,-2,0,0"
+                                VerticalAlignment="Center"
+                                Data="{StaticResource WarningRegular}"
+                                Fill="#DC3545"
+                                IsVisible="{Binding ShouldShowCdmWarning}"
+                                ToolTip.Tip="CDM definitions not loaded. Click the folder button to configure a path to a local copy of the cdm-definitions repository (https://github.com/resideo/cdm-definitions)." />
+                            <!--  Save changes to selected message (Ctrl+S)  -->
+                            <Button
+                                Width="32"
+                                Padding="0"
+                                Classes="theme-subtle"
+                                Command="{Binding SaveSelectedMessageCommand}"
+                                IsEnabled="{Binding SelectedStoredMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                ToolTip.Tip="Save changes to selected message (Ctrl+S)">
+                                <PathIcon Data="{StaticResource SaveRegular}" />
+                            </Button>
                             <Button
                                 Width="32"
                                 Padding="0"
                                 Classes="theme-subtle"
                                 Command="{Binding SaveAsMessagesCommand}"
-                                ToolTip.Tip="Save in messages">
+                                ToolTip.Tip="Save as new message">
                                 <PathIcon Data="{StaticResource SaveAsRegular}" />
                             </Button>
                         </StackPanel>
@@ -125,21 +219,43 @@
                         Margin="0"
                         Background="{actipro:ThemeResource Container1BackgroundBrush}"
                         Document="{Binding AppState.AppData.MessageBody}"
-                        FontFamily="{StaticResource JetBrainsMono}" />
+                        FontFamily="{StaticResource JetBrainsMono}"
+                        IsVisible="{Binding IsCdmViewMode, Converter={x:Static BoolConverters.Not}}" />
+                    <!--  Read-only CDM human-readable view  -->
+                    <avaloniaEdit:TextEditor
+                        x:Name="CdmBodyEditor"
+                        Margin="0"
+                        Background="{actipro:ThemeResource Container1BackgroundBrush}"
+                        Document="{Binding CdmRenderedBody}"
+                        FontFamily="{StaticResource JetBrainsMono}"
+                        IsReadOnly="True"
+                        IsVisible="{Binding IsCdmViewMode}" />
                 </Grid>
             </Border>
             <GridSplitter
-                Grid.Row="2"
+                Grid.Row="3"
                 MinHeight="3"
                 MaxHeight="3"
                 ResizeDirection="Rows" />
-            <Border Grid.Row="3">
-                <avaloniaEdit:TextEditor
-                    Name="MessageHeadersEditor"
-                    Background="{actipro:ThemeResource Container1BackgroundBrush}"
-                    Document="{Binding AppState.AppData.UserProperties}"
-                    FontFamily="{StaticResource JetBrainsMono}"
-                    ShowLineNumbers="True" />
+            <Border Grid.Row="4">
+                <Grid>
+                    <avaloniaEdit:TextEditor
+                        Name="MessageHeadersEditor"
+                        Background="{actipro:ThemeResource Container1BackgroundBrush}"
+                        Document="{Binding AppState.AppData.UserProperties}"
+                        FontFamily="{StaticResource JetBrainsMono}"
+                        IsVisible="{Binding IsCdmViewMode, Converter={x:Static BoolConverters.Not}}"
+                        ShowLineNumbers="True" />
+                    <!--  Read-only CDM rendered properties view  -->
+                    <avaloniaEdit:TextEditor
+                        x:Name="CdmPropertiesEditor"
+                        Background="{actipro:ThemeResource Container1BackgroundBrush}"
+                        Document="{Binding CdmRenderedProperties}"
+                        FontFamily="{StaticResource JetBrainsMono}"
+                        IsReadOnly="True"
+                        IsVisible="{Binding IsCdmViewMode}"
+                        ShowLineNumbers="True" />
+                </Grid>
             </Border>
         </Grid>
 

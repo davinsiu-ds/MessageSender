@@ -80,37 +80,83 @@
                                     { }
                                 </TextBlock>
                             </Button>
+                            <!--  CDM view/edit toggle buttons  -->
+                            <!--  Show when in CDM view mode: click to switch to raw edit  -->
+                            <Button
+                                Width="32"
+                                Padding="0"
+                                Classes="theme-subtle accent"
+                                Command="{Binding ToggleCdmEditModeCommand}"
+                                IsVisible="{Binding IsCdmViewMode}"
+                                ToolTip.Tip="Edit raw JSON">
+                                <PathIcon Data="{StaticResource EditRegular}" />
+                            </Button>
+                            <!--  Show when in CDM edit mode (raw): click to switch to CDM view  -->
                             <Button
                                 Width="32"
                                 Padding="0"
                                 Classes="theme-subtle"
-                                Command="{Binding SetInSenderCommand}"
-                                IsEnabled="{Binding CanDelete}"
-                                ToolTip.Tip="Set in the sender page">
-                                <PathIcon Data="{StaticResource SendCopyRegular}" />
+                                Command="{Binding ToggleCdmEditModeCommand}"
+                                IsVisible="{Binding IsCdmEditActive}"
+                                ToolTip.Tip="View CDM format">
+                                <PathIcon Data="{StaticResource EyeRegular}" />
                             </Button>
+                            <!--  Warning: CDM definitions not loaded  -->
+                            <Path
+                                Width="20"
+                                Height="20"
+                                Margin="-2,-1,0,0"
+                                VerticalAlignment="Center"
+                                Data="{StaticResource WarningRegular}"
+                                Fill="#DC3545"
+                                IsVisible="{Binding ShouldShowCdmWarning}"
+                                ToolTip.Tip="CDM definitions not loaded. Click the folder button to configure a path to a local copy of the cdm-definitions repository (https://github.com/resideo/cdm-definitions)." />
                         </StackPanel>
                     </Border>
-                    <avaloniaEdit:TextEditor
-                        x:Name="MessageBodyEditor"
-                        Grid.Row="0"
-                        Margin="0"
-                        Background="{actipro:ThemeResource Container1BackgroundBrush}"
-                        Document="{Binding SelectedMessage.MessageBody}"
-                        FontFamily="{StaticResource JetBrainsMono}"
-                        IsEnabled="{Binding CanEditMessage}" />
+                    <!--  Message Body: raw editor or CDM rendered view  -->
+                    <Grid Grid.Row="0">
+                        <avaloniaEdit:TextEditor
+                            x:Name="MessageBodyEditor"
+                            Margin="0"
+                            Background="{actipro:ThemeResource Container1BackgroundBrush}"
+                            Document="{Binding SelectedMessage.MessageBody}"
+                            FontFamily="{StaticResource JetBrainsMono}"
+                            IsEnabled="{Binding CanEditMessage}"
+                            IsVisible="{Binding IsCdmViewMode, Converter={x:Static BoolConverters.Not}}" />
+                        <!--  Read-only CDM human-readable view  -->
+                        <avaloniaEdit:TextEditor
+                            x:Name="CdmMessageBodyEditor"
+                            Margin="0"
+                            Background="{actipro:ThemeResource Container1BackgroundBrush}"
+                            Document="{Binding CdmRenderedBody}"
+                            FontFamily="{StaticResource JetBrainsMono}"
+                            IsReadOnly="True"
+                            IsVisible="{Binding IsCdmViewMode}" />
+                    </Grid>
                     <GridSplitter
                         Grid.Row="1"
                         BorderBrush="LightGray"
                         BorderThickness="0,1,0,0" />
-                    <avaloniaEdit:TextEditor
-                        x:Name="MessagePropertiesEditor"
-                        Grid.Row="2"
-                        Margin="0"
-                        Background="{actipro:ThemeResource Container1BackgroundBrush}"
-                        Document="{Binding SelectedMessage.UserProperties}"
-                        FontFamily="{StaticResource JetBrainsMono}"
-                        IsEnabled="{Binding CanEditMessage}" />
+                    <!--  Message Properties: raw editor or CDM rendered view  -->
+                    <Grid Grid.Row="2">
+                        <avaloniaEdit:TextEditor
+                            x:Name="MessagePropertiesEditor"
+                            Margin="0"
+                            Background="{actipro:ThemeResource Container1BackgroundBrush}"
+                            Document="{Binding SelectedMessage.UserProperties}"
+                            FontFamily="{StaticResource JetBrainsMono}"
+                            IsEnabled="{Binding CanEditMessage}"
+                            IsVisible="{Binding IsCdmViewMode, Converter={x:Static BoolConverters.Not}}" />
+                        <!--  Read-only CDM rendered properties view  -->
+                        <avaloniaEdit:TextEditor
+                            x:Name="CdmMessagePropertiesEditor"
+                            Margin="0"
+                            Background="{actipro:ThemeResource Container1BackgroundBrush}"
+                            Document="{Binding CdmRenderedProperties}"
+                            FontFamily="{StaticResource JetBrainsMono}"
+                            IsReadOnly="True"
+                            IsVisible="{Binding IsCdmViewMode}" />
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>

@@ -10,4 +10,7 @@ public partial class Settings : ObservableObject
 
     [ObservableProperty]
     private ThemeVariant _variant = default!;
+
+    [ObservableProperty]
+    private string _cdmDefinitionsPath = string.Empty;
 }

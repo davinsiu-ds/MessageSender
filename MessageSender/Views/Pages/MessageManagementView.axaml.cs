@@ -61,12 +61,42 @@ public partial class MessageManagementView : UserControl
         MessagePropertiesEditor.Options.EnableEmailHyperlinks = false;
         MessagePropertiesEditor.Options.EnableHyperlinks = false;
         MessagePropertiesEditor.SearchResultsBrush = new SolidColorBrush(textSearchSectionColor);
-        MessagePropertiesEditor.TextArea.IndentationStrategy = new CSharpIndentationStrategy(MessageBodyEditor.Options);
+        MessagePropertiesEditor.TextArea.IndentationStrategy = new CSharpIndentationStrategy(MessagePropertiesEditor.Options);
         MessagePropertiesEditor.TextArea.RightClickMovesCaret = true;
         MessagePropertiesEditor.TextArea.SelectionBrush = new SolidColorBrush(textSelectionColor);
 
         TextMate.Installation messageHeadersEditorTextMateInstallation = MessagePropertiesEditor.InstallTextMate(registryOptions);
         messageHeadersEditorTextMateInstallation.SetGrammar(registryOptions.GetScopeByLanguageId(jsonSyntax.Id));
+
+        // Initialize CDM rendered body editor (read-only)
+        CdmMessageBodyEditor.ShowLineNumbers = true;
+        CdmMessageBodyEditor.Options.ConvertTabsToSpaces = true;
+        CdmMessageBodyEditor.Options.AllowScrollBelowDocument = true;
+        CdmMessageBodyEditor.Options.HighlightCurrentLine = true;
+        CdmMessageBodyEditor.Options.EnableEmailHyperlinks = false;
+        CdmMessageBodyEditor.Options.EnableHyperlinks = false;
+        CdmMessageBodyEditor.SearchResultsBrush = new SolidColorBrush(textSearchSectionColor);
+        CdmMessageBodyEditor.TextArea.IndentationStrategy = new CSharpIndentationStrategy(CdmMessageBodyEditor.Options);
+        CdmMessageBodyEditor.TextArea.RightClickMovesCaret = true;
+        CdmMessageBodyEditor.TextArea.SelectionBrush = new SolidColorBrush(textSelectionColor);
+
+        TextMate.Installation cdmMessageBodyEditorTextMateInstallation = CdmMessageBodyEditor.InstallTextMate(registryOptions);
+        cdmMessageBodyEditorTextMateInstallation.SetGrammar(registryOptions.GetScopeByLanguageId(jsonSyntax.Id));
+
+        // Initialize CDM rendered properties editor (read-only)
+        CdmMessagePropertiesEditor.ShowLineNumbers = true;
+        CdmMessagePropertiesEditor.Options.ConvertTabsToSpaces = true;
+        CdmMessagePropertiesEditor.Options.AllowScrollBelowDocument = true;
+        CdmMessagePropertiesEditor.Options.HighlightCurrentLine = true;
+        CdmMessagePropertiesEditor.Options.EnableEmailHyperlinks = false;
+        CdmMessagePropertiesEditor.Options.EnableHyperlinks = false;
+        CdmMessagePropertiesEditor.SearchResultsBrush = new SolidColorBrush(textSearchSectionColor);
+        CdmMessagePropertiesEditor.TextArea.IndentationStrategy = new CSharpIndentationStrategy(CdmMessagePropertiesEditor.Options);
+        CdmMessagePropertiesEditor.TextArea.RightClickMovesCaret = true;
+        CdmMessagePropertiesEditor.TextArea.SelectionBrush = new SolidColorBrush(textSelectionColor);
+
+        TextMate.Installation cdmMessagePropertiesEditorTextMateInstallation = CdmMessagePropertiesEditor.InstallTextMate(registryOptions);
+        cdmMessagePropertiesEditorTextMateInstallation.SetGrammar(registryOptions.GetScopeByLanguageId(jsonSyntax.Id));
     }
 
     private void Current_ActualThemeVariantChanged(object? sender, System.EventArgs e)

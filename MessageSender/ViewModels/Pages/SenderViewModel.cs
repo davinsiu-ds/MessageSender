@@ -1,9 +1,14 @@
-﻿using Avalonia.Controls.Notifications;
+﻿using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Notifications;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using AvaloniaEdit.Document;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DialogHostAvalonia;
+using MessageSender.Models;
+using MessageSender.Services.CDM;
 using MessageSender.Services.Interaction;
 using MessageSender.State;
 using MessageSender.Utils;
@@ -11,6 +16,7 @@ using MessageSender.Utils.ActionWrapper;
 using MessageSender.ViewModels.Dialogs;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -22,6 +28,8 @@ public partial class SenderViewModel : ViewModelBase
 {
     private readonly MqttService _mqttService;
     private readonly ActionDispatcher _dispatcher;
+    private readonly CdmDefinitionService _cdmService;
+    private readonly CdmRenderer _cdmRenderer;
 
     private IMessagingService _activeMessagingService;
 
@@ -41,10 +49,41 @@ public partial class SenderViewModel : ViewModelBase
     [ObservableProperty]
     private DeviceMessage? _selectedMessage;
 
-    public SenderViewModel(MqttService mqttService, AppState appState, ActionDispatcher dispatcher)
+    [ObservableProperty]
+    private StoredMessage? _selectedStoredMessage;
+
+    // ── CDM view state ──────────────────────────────────────────────────────
+
+    [ObservableProperty]
+    private bool _isCdmMessage;
+
+    [ObservableProperty]
+    private bool _isCdmEditMode;
+
+    [ObservableProperty]
+    private TextDocument _cdmRenderedBody = new("{}");
+
+    /// <summary>True when showing the CDM human-readable view (read-only).</summary>
+    public bool IsCdmViewMode => IsCdmMessage && !IsCdmEditMode;
+
+    /// <summary>True when showing the raw JSON editor while a CDM message is active.</summary>
+    public bool IsCdmEditActive => IsCdmMessage && IsCdmEditMode;
+
+    [ObservableProperty]
+    private TextDocument _cdmRenderedProperties = new("{}");
+
+    /// <summary>True when CDM definitions are loaded and available for rendering.</summary>
+    public bool CdmDefinitionsLoaded => _cdmService.IsLoaded;
+
+    /// <summary>True when message is CDM format but definitions are not loaded.</summary>
+    public bool ShouldShowCdmWarning => IsCdmMessage && !CdmDefinitionsLoaded;
+
+    public SenderViewModel(MqttService mqttService, AppState appState, ActionDispatcher dispatcher, CdmDefinitionService cdmService)
     {
         _mqttService = mqttService;
         _dispatcher = dispatcher;
+        _cdmService = cdmService;
+        _cdmRenderer = new CdmRenderer(_cdmService);
 
         _activeMessagingService = _mqttService; // To support multiple service like MQTT , AMQP and etc.
         _activeMessagingService.DisconnectedFromMessageSource = Disconnected;
@@ -52,6 +91,7 @@ public partial class SenderViewModel : ViewModelBase
         _activeMessagingService.MessageReceived = MessageReceived;
 
         AppState = appState;
+        AppState.AppData.PropertyChanged += OnAppDataPropertyChanged;
     }
 
     public AppState AppState { get; private set; }
@@ -124,6 +164,120 @@ public partial class SenderViewModel : ViewModelBase
             .Run();
     }
 
+    // ── CDM commands ────────────────────────────────────────────────────────
+
+    [RelayCommand]
+    private void ToggleCdmEditMode()
+    {
+        IsCdmEditMode = !IsCdmEditMode;
+        // When switching back to view mode, re-render with the latest body content
+        if (!IsCdmEditMode)
+            RenderCdmBody();
+    }
+
+    [RelayCommand]
+    private async Task SelectCdmDefinitionsPath()
+    {
+        var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        if (mainWindow?.StorageProvider is null) return;
+
+        var folders = await mainWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Select CDM Definitions Folder",
+            AllowMultiple = false,
+        });
+
+        if (folders.Count == 0) return;
+
+        var path = folders[0].Path.LocalPath;
+        var result = _cdmService.Load(path);
+
+        if (result.Success)
+        {
+            AppState.Settings.CdmDefinitionsPath = path;
+            OnPropertyChanged(nameof(CdmDefinitionsLoaded));
+            OnPropertyChanged(nameof(ShouldShowCdmWarning));
+            RefreshCdmStatus();
+
+            await _dispatcher
+                .Action(() => Task.CompletedTask)
+                .WithNotification(new("CDM Definitions Loaded", result.Message, NotificationType.Success))
+                .Run();
+        }
+        else
+        {
+            OnPropertyChanged(nameof(CdmDefinitionsLoaded));
+            OnPropertyChanged(nameof(ShouldShowCdmWarning));
+
+            await _dispatcher
+                .Action(() => Task.CompletedTask)
+                .WithNotification(new("Failed to Load CDM Definitions", result.Message, NotificationType.Error))
+                .Run();
+        }
+    }
+
+    // ── CDM derived-property notifications ─────────────────────────────────
+
+    partial void OnIsCdmMessageChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsCdmViewMode));
+        OnPropertyChanged(nameof(IsCdmEditActive));
+        OnPropertyChanged(nameof(ShouldShowCdmWarning));
+    }
+
+    partial void OnIsCdmEditModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsCdmViewMode));
+        OnPropertyChanged(nameof(IsCdmEditActive));
+    }
+
+    // ── CDM internal helpers ────────────────────────────────────────────────
+
+    private void OnAppDataPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(AppData.UserProperties))
+            RefreshCdmStatus();
+    }
+
+    private void RefreshCdmStatus()
+    {
+        var wasCdm = IsCdmMessage;
+        IsCdmMessage = CdmRenderer.IsCdmMessage(AppState.AppData.UserProperties.Text);
+
+        // Reset edit mode when the message type changes so we default to CDM view
+        if (IsCdmMessage != wasCdm)
+            IsCdmEditMode = false;
+
+        if (IsCdmMessage && !IsCdmEditMode)
+            RenderCdmBody();
+    }
+
+    private void RenderCdmBody()
+    {
+        var rendered = _cdmRenderer.Render(
+            AppState.AppData.MessageBody.Text,
+            AppState.AppData.UserProperties.Text);
+        CdmRenderedBody = new TextDocument(rendered);
+
+        var renderedProps = _cdmRenderer.RenderUserProperties(AppState.AppData.UserProperties.Text);
+        CdmRenderedProperties = new TextDocument(renderedProps);
+    }
+
+    [RelayCommand]
+    public async Task SaveSelectedMessage()
+    {
+        await _dispatcher
+            .Action(() =>
+            {
+                if (SelectedStoredMessage == null) return Task.CompletedTask;
+                SelectedStoredMessage.MessageBody = new TextDocument(AppState.AppData.MessageBody.Text);
+                SelectedStoredMessage.UserProperties = new TextDocument(AppState.AppData.UserProperties.Text);
+                return Task.CompletedTask;
+            })
+            .WithNotification(new($"'{SelectedStoredMessage?.Name}' Saved", "Message updated", NotificationType.Success))
+            .Run();
+    }
+
     [RelayCommand]
     public async Task SaveAsMessages()
     {
@@ -191,6 +345,16 @@ public partial class SenderViewModel : ViewModelBase
         args.Timestamp = DateTimeOffset.Now;
         args.Direction = MessageDirection.In;
         AppState.AppData.DeviceMessages.Add(args);
+    }
+
+    partial void OnSelectedStoredMessageChanged(StoredMessage? value)
+    {
+        if (value == null) return;
+        AppState.AppData.MessageBody = new TextDocument(value.MessageBody.Text);
+        AppState.AppData.UserProperties = new TextDocument(value.UserProperties.Text);
+        // CDM detection is triggered by the UserProperties PropertyChanged event above,
+        // but also reset edit mode so we default to the CDM rendered view.
+        IsCdmEditMode = false;
     }
 
     partial void OnSelectedMessageChanged(DeviceMessage? value)
