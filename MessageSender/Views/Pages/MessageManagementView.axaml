@@ -110,7 +110,7 @@
                                 Data="{StaticResource WarningRegular}"
                                 Fill="#DC3545"
                                 IsVisible="{Binding ShouldShowCdmWarning}"
-                                ToolTip.Tip="CDM definitions not loaded. Click the folder button to configure a path to a local copy of the cdm-definitions repository (https://github.com/resideo/cdm-definitions)." />
+                                ToolTip.Tip="CDM definitions not loaded. Click the folder button in the sidebar (bottom left corner) to configure a path to a local copy of the cdm-definitions repository (https://github.com/resideo/cdm-definitions)." />
                         </StackPanel>
                     </Border>
                     <!--  Message Body: raw editor or CDM rendered view  -->

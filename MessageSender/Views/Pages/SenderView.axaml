@@ -114,27 +114,6 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <StackPanel
-                        Grid.Column="1"
-                        Orientation="Horizontal"
-                        Spacing="2">
-                        <Button
-                            Classes="theme-subtle"
-                            Command="{Binding SelectCdmDefinitionsPathCommand}"
-                            ToolTip.Tip="{Binding AppState.Settings.CdmDefinitionsPath, StringFormat='CDM Definitions: {0}'}">
-                            <PathIcon Data="{StaticResource FolderRegular}" />
-                        </Button>
-                        <!--  Warning: CDM definitions not loaded  -->
-                        <Path
-                            Width="20"
-                            Height="20"
-                            Margin="-4,-2,0,0"
-                            VerticalAlignment="Center"
-                            Data="{StaticResource WarningRegular}"
-                            Fill="#DC3545"
-                            IsVisible="{Binding ShouldShowCdmWarning}"
-                            ToolTip.Tip="CDM definitions not loaded. Click the folder button to configure a path to a local copy of the cdm-definitions repository (https://github.com/resideo/cdm-definitions)." />
-                    </StackPanel>
                 </Grid>
             </Border>
             <Border Grid.Row="2">
@@ -193,7 +172,7 @@
                                 Data="{StaticResource WarningRegular}"
                                 Fill="#DC3545"
                                 IsVisible="{Binding ShouldShowCdmWarning}"
-                                ToolTip.Tip="CDM definitions not loaded. Click the folder button to configure a path to a local copy of the cdm-definitions repository (https://github.com/resideo/cdm-definitions)." />
+                                ToolTip.Tip="CDM definitions not loaded. Click the folder button in the sidebar (bottom left corner) to configure a path to a local copy of the cdm-definitions repository (https://github.com/resideo/cdm-definitions)." />
                             <!--  Save changes to selected message (Ctrl+S)  -->
                             <Button
                                 Width="32"

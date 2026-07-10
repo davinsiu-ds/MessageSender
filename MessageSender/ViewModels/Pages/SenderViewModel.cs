@@ -175,47 +175,6 @@ public partial class SenderViewModel : ViewModelBase
             RenderCdmBody();
     }
 
-    [RelayCommand]
-    private async Task SelectCdmDefinitionsPath()
-    {
-        var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-        if (mainWindow?.StorageProvider is null) return;
-
-        var folders = await mainWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        {
-            Title = "Select CDM Definitions Folder",
-            AllowMultiple = false,
-        });
-
-        if (folders.Count == 0) return;
-
-        var path = folders[0].Path.LocalPath;
-        var result = _cdmService.Load(path);
-
-        if (result.Success)
-        {
-            AppState.Settings.CdmDefinitionsPath = path;
-            OnPropertyChanged(nameof(CdmDefinitionsLoaded));
-            OnPropertyChanged(nameof(ShouldShowCdmWarning));
-            RefreshCdmStatus();
-
-            await _dispatcher
-                .Action(() => Task.CompletedTask)
-                .WithNotification(new("CDM Definitions Loaded", result.Message, NotificationType.Success))
-                .Run();
-        }
-        else
-        {
-            OnPropertyChanged(nameof(CdmDefinitionsLoaded));
-            OnPropertyChanged(nameof(ShouldShowCdmWarning));
-
-            await _dispatcher
-                .Action(() => Task.CompletedTask)
-                .WithNotification(new("Failed to Load CDM Definitions", result.Message, NotificationType.Error))
-                .Run();
-        }
-    }
-
     // ── CDM derived-property notifications ─────────────────────────────────
 
     partial void OnIsCdmMessageChanged(bool value)

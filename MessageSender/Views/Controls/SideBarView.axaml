@@ -44,20 +44,48 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <actipro:ToggleThemeButton
-            Margin="0,0,0,35"
+        <StackPanel
             HorizontalAlignment="Center"
             VerticalAlignment="Bottom"
-            ZIndex="1" />
+            Orientation="Vertical"
+            Spacing="5">
+            <!--  CDM Definitions folder button with warning indicator  -->
+            <StackPanel
+                HorizontalAlignment="Center"
+                Orientation="Horizontal"
+                Spacing="2">
+                <Button
+                    Width="32"
+                    Height="32"
+                    Padding="0"
+                    Classes="theme-subtle"
+                    Command="{Binding SelectCdmDefinitionsPathCommand}"
+                    ToolTip.Tip="{Binding AppState.Settings.CdmDefinitionsPath, StringFormat='CDM Definitions: {0}'}">
+                    <PathIcon Data="{StaticResource FolderRegular}" />
+                </Button>
+                <!--  Warning: CDM definitions not loaded  -->
+                <Path
+                    Width="20"
+                    Height="20"
+                    Margin="-2,-1,0,0"
+                    VerticalAlignment="Center"
+                    Data="{StaticResource WarningRegular}"
+                    Fill="#DC3545"
+                    IsVisible="{Binding ShouldShowCdmWarning}"
+                    ToolTip.Tip="CDM definitions not loaded. Click the folder button to configure a path to a local copy of the cdm-definitions repository (https://github.com/resideo/cdm-definitions)." />
+            </StackPanel>
 
-        <TextBlock
-            Margin="0,0,0,10"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Bottom"
-            FontWeight="DemiBold"
-            Foreground="{actipro:ThemeResource ControlForegroundBrushOutlineDangerDisabled}"
-            Text="Off line"
-            ZIndex="1" />
+            <actipro:ToggleThemeButton
+                HorizontalAlignment="Center"
+                ZIndex="1" />
+
+            <TextBlock
+                HorizontalAlignment="Center"
+                FontWeight="DemiBold"
+                Foreground="{actipro:ThemeResource ControlForegroundBrushOutlineDangerDisabled}"
+                Text="Off line"
+                ZIndex="1" />
+        </StackPanel>
     </Grid>
 
 </UserControl>
