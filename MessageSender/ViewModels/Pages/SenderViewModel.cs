@@ -92,6 +92,7 @@ public partial class SenderViewModel : ViewModelBase
 
         AppState = appState;
         AppState.AppData.PropertyChanged += OnAppDataPropertyChanged;
+        AppState.OnCdmStatusChanged += RefreshCdmComputedProperties;
     }
 
     public AppState AppState { get; private set; }
@@ -188,6 +189,13 @@ public partial class SenderViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(IsCdmViewMode));
         OnPropertyChanged(nameof(IsCdmEditActive));
+    }
+
+    /// <summary>Refresh CDM computed properties when CDM service status changes (called from AppState.OnCdmStatusChanged).</summary>
+    private void RefreshCdmComputedProperties()
+    {
+        OnPropertyChanged(nameof(CdmDefinitionsLoaded));
+        OnPropertyChanged(nameof(ShouldShowCdmWarning));
     }
 
     // ── CDM internal helpers ────────────────────────────────────────────────

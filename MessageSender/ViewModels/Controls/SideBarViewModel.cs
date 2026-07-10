@@ -88,6 +88,7 @@ public partial class SideBarViewModel : ViewModelBase
             _appState.Settings.CdmDefinitionsPath = path;
             OnPropertyChanged(nameof(CdmDefinitionsLoaded));
             OnPropertyChanged(nameof(ShouldShowCdmWarning));
+            _appState.OnCdmStatusChanged?.Invoke();
 
             await _dispatcher
                 .Action(() => Task.CompletedTask)
@@ -98,6 +99,7 @@ public partial class SideBarViewModel : ViewModelBase
         {
             OnPropertyChanged(nameof(CdmDefinitionsLoaded));
             OnPropertyChanged(nameof(ShouldShowCdmWarning));
+            _appState.OnCdmStatusChanged?.Invoke();
 
             await _dispatcher
                 .Action(() => Task.CompletedTask)
