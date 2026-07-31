@@ -305,6 +305,12 @@ public class CdmRenderer
                 var name = _service.GetCluster(cid)?.Name ?? cid.ToString();
                 result[key] = JsonValue.Create($"{name} ({cid})");
             }
+            // EventID field in EventReportIB → show "EventName (ID)" using the active cluster's event definitions
+            else if (field.Name == "EventID" && activeCluster is not null && value is JsonValue eval && eval.TryGetValue<int>(out int eid))
+            {
+                var eventName = activeCluster.Events.TryGetValue(eid.ToString(), out var ev) ? ev.Name : eid.ToString();
+                result[key] = JsonValue.Create($"{eventName} ({eid})");
+            }
             // Variable-typed Attributes field in AttributeDataIB → decode using cluster attributes
             else if (field.Name == "Attributes" && field.Type == "Variable" && activeCluster is not null && value is JsonObject attrObj)
             {
@@ -349,6 +355,13 @@ public class CdmRenderer
 
     private JsonNode? RenderClusterAttributeValue(JsonNode value, CdmField field, CdmCluster cluster)
     {
+        // ClusterID reference → show "ClusterName (ID)"
+        if (field.Name == "ClusterID" && value is JsonValue cidVal && cidVal.TryGetValue<int>(out int refClusterId))
+        {
+            var name = _service.GetCluster(refClusterId)?.Name ?? refClusterId.ToString();
+            return JsonValue.Create($"{name} ({refClusterId})");
+        }
+
         // cdmarray: keyed by index, values are structs
         if (field.Type.Equals("cdmarray", StringComparison.OrdinalIgnoreCase) && value is JsonObject cdmArr)
         {
