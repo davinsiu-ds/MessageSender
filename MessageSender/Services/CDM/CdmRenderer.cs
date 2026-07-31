@@ -287,6 +287,15 @@ public class CdmRenderer
                 activeCluster = _service.GetCluster(clusterId);
         }
 
+        // For EventReportIB, resolve the specific event from field "2" so its
+        // payload (field "3") can be decoded using the event's data definitions.
+        CdmEvent? activeEvent = null;
+        if (structDef.Name == "EventReportIB" && activeCluster is not null
+            && obj["2"] is JsonValue evId && evId.TryGetValue<int>(out int eventId))
+        {
+            activeCluster.Events.TryGetValue(eventId.ToString(), out activeEvent);
+        }
+
         var result = new JsonObject();
         foreach (var kv in obj)
         {
@@ -315,6 +324,11 @@ public class CdmRenderer
             else if (field.Name == "Attributes" && field.Type == "Variable" && activeCluster is not null && value is JsonObject attrObj)
             {
                 result[key] = RenderClusterAttributes(attrObj, activeCluster);
+            }
+            // Variable-typed Event payload in EventReportIB → decode using the event's data definitions
+            else if (field.Name == "Event" && field.Type == "Variable" && activeEvent is not null && activeCluster is not null && value is JsonObject eventObj)
+            {
+                result[key] = RenderEventData(eventObj, activeEvent, activeCluster);
             }
             // Array of structs
             else if (field.IsArray && value is JsonArray arr)
@@ -353,6 +367,29 @@ public class CdmRenderer
         return result;
     }
 
+    /// <summary>
+    /// Renders an EventReportIB event payload.
+    /// Keys are EventData field IDs from the event definition; values are decoded
+    /// using the owning cluster so that references such as ClusterID, enums, and
+    /// structs are resolved to human-readable names.
+    /// </summary>
+    private JsonNode RenderEventData(JsonObject eventObj, CdmEvent eventDef, CdmCluster cluster)
+    {
+        var result = new JsonObject();
+        foreach (var kv in eventObj)
+        {
+            eventDef.EventData.TryGetValue(kv.Key, out var field);
+            var key = field?.Name ?? kv.Key;
+            var value = kv.Value;
+            if (value is null) { result[key] = null; continue; }
+
+            result[key] = field is not null
+                ? RenderClusterAttributeValue(value, field, cluster)
+                : value.DeepClone();
+        }
+        return result;
+    }
+
     private JsonNode? RenderClusterAttributeValue(JsonNode value, CdmField field, CdmCluster cluster)
     {
         // ClusterID reference → show "ClusterName (ID)"
@@ -377,10 +414,23 @@ public class CdmRenderer
         }
 
         // struct
-        if (field.Type.Equals("struct", StringComparison.OrdinalIgnoreCase) && field.StructID.HasValue && value is JsonObject)
+        if (field.Type.Equals("struct", StringComparison.OrdinalIgnoreCase) && field.StructID.HasValue)
         {
             if (cluster.Structs.TryGetValue(field.StructID.Value.ToString(), out var structDef))
-                return RenderClusterStruct(value, structDef, cluster);
+            {
+                // Array of structs
+                if (value is JsonArray structArr)
+                {
+                    var resultArr = new JsonArray();
+                    foreach (var item in structArr)
+                        resultArr.Add(item is null ? null : RenderClusterStruct(item, structDef, cluster));
+                    return resultArr;
+                }
+
+                // Single struct
+                if (value is JsonObject)
+                    return RenderClusterStruct(value, structDef, cluster);
+            }
         }
 
         // enum

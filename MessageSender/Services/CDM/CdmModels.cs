@@ -11,7 +11,7 @@ public class CdmCluster
     public Dictionary<string, CdmCommand> Commands { get; set; } = new();
     public Dictionary<string, CdmStruct> Structs { get; set; } = new();
     public Dictionary<string, CdmEnumDef> Enums { get; set; } = new();
-    public Dictionary<string, CdmField> Events { get; set; } = new();
+    public Dictionary<string, CdmEvent> Events { get; set; } = new();
 }
 
 /// <summary>A single attribute or command field definition.</summary>
@@ -39,6 +39,14 @@ public class CdmStruct
     public int ID { get; set; }
     public string Name { get; set; } = string.Empty;
     public Dictionary<string, CdmField> Attributes { get; set; } = new();
+}
+
+/// <summary>An event definition – holds an EventData field dictionary describing its payload.</summary>
+public class CdmEvent
+{
+    public int ID { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public Dictionary<string, CdmField> EventData { get; set; } = new();
 }
 
 /// <summary>An enum definition with its list of named values.</summary>
